@@ -1,9 +1,14 @@
 import { getPaste } from '@/lib/db';
 import { notFound } from 'next/navigation';
 
-export default async function ViewPastePage({ params }: { params: { id: string } }) {
+export default async function ViewPastePage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+    const { id } = await params;
   try {
-    const paste = await getPaste(params.id);
+    const paste = await getPaste(pid);
 
     if (!paste) {
       notFound();
@@ -16,7 +21,7 @@ export default async function ViewPastePage({ params }: { params: { id: string }
       <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-white mb-2">Paste #{params.id}</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Paste #{id}</h1>
             <div className="flex gap-4 text-sm text-gray-400">
               {expiresAt && (
                 <span>Expires: {expiresAt.toLocaleString()}</span>
