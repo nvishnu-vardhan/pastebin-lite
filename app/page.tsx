@@ -10,36 +10,24 @@ export default function Home() {
   const [maxViews, setMaxViews] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess(false);
+    setSuccess('');
     setLoading(true);
 
+    if (!content.trim()) {
+      setError('Please enter some content for your paste');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const body: any = { content: content.trim() };
-      
-      if (ttlSeconds) {
-        const ttl = parseInt(ttlSeconds);
-        if (ttl < 1) {
-          setError('TTL must be at least 1 second');
-          setLoading(false);
-          return;
-        }
-        body.ttlSeconds = ttl;
-      }
-      
-      if (maxViews) {
-        const views = parseInt(maxViews);
-        if (views < 1) {
-          setError('Max views must be at least 1');
-          setLoading(false);
-          return;
-        }
-        body.maxViews = views;
-      }
+      const body = { content };
+      if (ttlSeconds) body.ttl_seconds = parseInt(ttlSeconds);
+      if (maxViews) body.max_views = parseInt(maxViews);
 
       const response = await fetch('/api/pastes', {
         method: 'POST',
@@ -47,129 +35,122 @@ export default function Home() {
         body: JSON.stringify(body),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.error || 'Failed to create paste');
-        return;
-      }
+      if (!response.ok) throw new Error('Failed to create paste');
 
-      setSuccess(true);
       const data = await response.json();
+      setSuccess('Paste created! Redirecting...');
+      setContent('');
+      setTtlSeconds('');
+      setMaxViews('');
+      
       setTimeout(() => {
         router.push(`/p/${data.id}`);
-      }, 500);
+      }, 1000);
     } catch (err) {
-      setError('Failed to create paste. Please try again.');
+      setError(err instanceof Error ? err.message : 'Error creating paste');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-5xl font-bold text-white mb-4">Pastebin Lite</h1>
-            <p className="text-xl text-gray-300 mb-2">
-              Share text pastes with optional expiry by TTL and view count
-            </p>
-            <p className="text-sm text-gray-400">Built with Next.js, TypeScript, and PostgreSQL</p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-6 flex items-center justify-center">
+      <div className="w-full max-w-2xl">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400 mb-3">Pastebin Lite</h1>
+          <p className="text-slate-400 text-lg">Share text instantly with optional expiry</p>
+        </div>
 
-          <div className="bg-slate-800 rounded-lg p-8 border border-slate-700 shadow-2xl">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <div className="bg-red-900/50 border border-red-700 text-red-200 p-4 rounded-lg">
-                  {error}
-                </div>
-              )}
+        {/* Main Card */}
+        <div className="bg-slate-800/50 backdrop-blur rounded-3xl shadow-2xl p-10 border border-slate-700/50 mb-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Content Textarea */}
+            <div>
+              <label className="block text-sm font-semibold text-white mb-3">Your Paste</label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Enter your text here..."
+                className="w-full h-48 p-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition"
+              />
+              <div className="text-xs text-slate-400 mt-2">{content.length} characters</div>
+            </div>
 
-              {success && (
-                <div className="bg-green-900/50 border border-green-700 text-green-200 p-4 rounded-lg">
-                  ✓ Paste created! Redirecting...
-                </div>
-              )}
-
+            {/* Optional Settings */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-white font-semibold mb-2">
-                  Paste Content <span className="text-red-400">*</span>
-                </label>
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  required
-                  placeholder="Enter your paste content here..."
-                  className="w-full h-64 p-4 bg-slate-900 text-white rounded-lg border border-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
+                <label className="block text-sm font-semibold text-white mb-2">Expires in (seconds)</label>
+                <input
+                  type="number"
+                  value={ttlSeconds}
+                  onChange={(e) => setTtlSeconds(e.target.value)}
+                  placeholder="e.g., 3600"
+                  className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 />
-                <p className="text-gray-400 text-sm mt-1">{content.length} characters</p>
+                <div className="text-xs text-slate-500 mt-1">Optional</div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-white font-semibold mb-2">
-                    TTL (Time-To-Live in seconds)
-                  </label>
-                  <input
-                    type="number"
-                    value={ttlSeconds}
-                    onChange={(e) => setTtlSeconds(e.target.value)}
-                    min="1"
-                    placeholder="e.g., 3600"
-                    className="w-full p-3 bg-slate-900 text-white rounded-lg border border-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  />
-                  <p className="text-gray-400 text-sm mt-1">Optional: paste expires after this duration</p>
-                </div>
-
-                <div>
-                  <label className="block text-white font-semibold mb-2">
-                    Max Views
-                  </label>
-                  <input
-                    type="number"
-                    value={maxViews}
-                    onChange={(e) => setMaxViews(e.target.value)}
-                    min="1"
-                    placeholder="e.g., 5"
-                    className="w-full p-3 bg-slate-900 text-white rounded-lg border border-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  />
-                  <p className="text-gray-400 text-sm mt-1">Optional: paste expires after X views</p>
-                </div>
+              <div>
+                <label className="block text-sm font-semibold text-white mb-2">Max Views</label>
+                <input
+                  type="number"
+                  value={maxViews}
+                  onChange={(e) => setMaxViews(e.target.value)}
+                  placeholder="e.g., 5"
+                  className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                />
+                <div className="text-xs text-slate-500 mt-1">Optional</div>
               </div>
+            </div>
 
-              <button
-                type="submit"
-                disabled={loading || !content.trim()}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition duration-200"
-              >
-                {loading ? '⏳ Creating Paste...' : '✨ Create Paste'}
-              </button>
-            </form>
+            {/* Error Message */}
+            {error && (
+              <div className="p-4 bg-red-900/20 border border-red-700 rounded-xl">
+                <p className="text-red-300 text-sm">⚠️ {error}</p>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {success && (
+              <div className="p-4 bg-green-900/20 border border-green-700 rounded-xl">
+                <p className="text-green-300 text-sm">✓ {success}</p>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold rounded-xl transition transform hover:scale-105 disabled:scale-100 shadow-lg"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Creating...
+                </span>
+              ) : (
+                '📤 Create & Share Paste'
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Features */}
+        <div className="mt-10 grid grid-cols-3 gap-4 text-center">
+          <div>
+            <div className="text-3xl mb-2">⚡</div>
+            <p className="text-slate-400 text-sm font-medium">Instant</p>
           </div>
-
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 text-gray-300">
-            <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700">
-              <h2 className="text-xl font-bold text-white mb-4">🚀 How it works:</h2>
-              <ul className="space-y-2 text-sm">
-                <li>✓ Enter your paste content</li>
-                <li>✓ Optionally set TTL for auto-expiry</li>
-                <li>✓ Optionally limit max views</li>
-                <li>✓ Get a unique shareable link</li>
-              </ul>
-            </div>
-
-            <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700">
-              <h2 className="text-xl font-bold text-white mb-4">📋 API Endpoints:</h2>
-              <ul className="space-y-2 text-sm">
-                <li>🔍 GET /api/healthz</li>
-                <li>📝 POST /api/pastes</li>
-                <li>📖 GET /api/pastes?id=xyz</li>
-                <li>🌐 GET /p/xyz</li>
-              </ul>
-            </div>
+          <div>
+            <div className="text-3xl mb-2">🔒</div>
+            <p className="text-slate-400 text-sm font-medium">Auto-Expiry</p>
+          </div>
+          <div>
+            <div className="text-3xl mb-2">👁️</div>
+            <p className="text-slate-400 text-sm font-medium">View Limits</p>
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
