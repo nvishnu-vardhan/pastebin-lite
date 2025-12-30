@@ -16,7 +16,10 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true
+    "noImplicitOverride": true,
+        "paths": {
+                "@/*": ["./src/*", "./*"]
+              }
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
