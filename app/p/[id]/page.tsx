@@ -8,7 +8,7 @@ export default async function ViewPastePage({
 }) {
     const { id } = await params;
   try {
-    const paste = await getPaste(pid);
+      const paste = await getPaste(id);
 
     if (!paste) {
       notFound();
